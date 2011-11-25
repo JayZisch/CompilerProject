@@ -1,0 +1,7 @@
+#! /bin/sh
+
+zip hw.zip compile.py optimizeVars.py runtime.c runtime.h
+cd test
+zip hw_test.zip *.py *.in
+
+mv -f hw_test.zip ..
