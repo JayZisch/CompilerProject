@@ -29,7 +29,7 @@ def pullFiles(html):
                 print 'passed on',pyfile
                 passed.append(url)
             else:
-                with open('server_tests/'+pyfile,'w') as f:
+                with open('RefCompiler/'+pyfile,'w') as f:
                     f.write(data)
         urls = passed
 
