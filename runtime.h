@@ -117,6 +117,7 @@ big_pyobj* project_big(pyobj val);
 /* Generators */
 static big_pyobj* genobj_to_big(genobj go);
 big_pyobj* create_genobj(void* instr_ptr, pyobj expression_list);
+void set_instrptr(pyobj obj, void* instrptr)
 void* get_instrptr(pyobj obj);
 
 /* Operations */

@@ -1081,8 +1081,15 @@ big_pyobj* create_genobj(void* instr_ptr, pyobj expression_list) {
   return genobj_to_big(go);
 }
 
+void set_instrptr(pyobj obj, void* instrptr) {
+	big_pyobj* b = project_big(obj);
+	assert(tag(b) == GENOBJ);
+	b->u.go->instruct_ptr = instrptr;
+}
+
 void* get_instrptr(pyobj obj) {
-	big_pyobj* b = project_genobj(obj);
+	big_pyobj* b = project_big(obj);
+	assert(tag(b) == GENOBJ);
 	return b->u.go->instruct_ptr;
 }
 
