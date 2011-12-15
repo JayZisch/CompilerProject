@@ -28,7 +28,7 @@ int input();
 */
 #define BIG_TAG 3   /* 11 */
 
-enum big_type_tag { LIST, DICT, FUN, CLASS, OBJECT, UBMETHOD, BMETHOD };
+enum big_type_tag { LIST, DICT, FUN, CLASS, OBJECT, UBMETHOD, BMETHOD, GENOBJ};
 
 typedef long int pyobj;
 
@@ -73,6 +73,11 @@ struct bound_method_struct {
 };
 typedef struct bound_method_struct bound_method;
 
+struct genobj_struct {
+	void* instruct_ptr;							// Pointer to a jmp address
+	pyobj expression_list;
+}
+typedef struct genobj_struct genobj;
 
 struct pyobj_struct {
   enum big_type_tag tag;
@@ -84,6 +89,7 @@ struct pyobj_struct {
     object obj;
     unbound_method ubm;
     bound_method bm;
+    genobj go;
   } u;
 };
 typedef struct pyobj_struct big_pyobj;
@@ -98,6 +104,7 @@ int is_object(pyobj val);
 int is_class(pyobj val);
 int is_unbound_method(pyobj val);
 int is_bound_method(pyobj val);
+int is_genobj(pyobj val);
 
 pyobj inject_int(int i);
 pyobj inject_bool(int b);
@@ -107,6 +114,11 @@ int project_int(pyobj val);
 int project_bool(pyobj val);
 big_pyobj* project_big(pyobj val);
 
+/* Generators */
+static big_pyobj* genobj_to_big(genobj go);
+big_pyobj* create_genobj(void* instr_ptr, pyobj expression_list);
+void* get_instrptr(pyobj obj);
+
 /* Operations */
 
 int is_true(pyobj v);
@@ -114,9 +126,7 @@ void print_any(pyobj p);
 pyobj input_int();
 
 big_pyobj* create_list(pyobj length);
-pyobj make_list(pyobj length);
 big_pyobj* create_dict();
-pyobj make_dict();
 pyobj set_subscript(pyobj c, pyobj key, pyobj val);
 pyobj get_subscript(pyobj c, pyobj key);
 

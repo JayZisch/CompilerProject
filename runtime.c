@@ -9,7 +9,7 @@
 int min(int x, int y) { return y < x ? y : x; }
 
 /* Some forward declarations */
-int equal_pyobj(pyobj a, pyobj b);
+static int equal_pyobj(pyobj a, pyobj b);
 static void print_float(double in);
 static void print_list(pyobj pyobj_list);
 static void print_dict(pyobj dict);
@@ -54,6 +54,9 @@ int is_unbound_method(pyobj val) {
 }
 int is_bound_method(pyobj val) {
   return is_big(val) && (project_big(val)->tag == BMETHOD);
+}
+int is_genobj(pyobj val) {
+	return is_big(val) && (project_big(val)->tag == GENOBJ);
 }
 
 /*
@@ -119,6 +122,12 @@ unbound_method project_unbound_method(pyobj val) {
   return p->u.ubm;
 }
 
+genobj project_genobj(pyobj val) {
+	big_pyobj* p = project_big(val);
+	assert(p->tag == GENOBJ);
+	return p->u.go;
+}
+
 
 /* Not used? */
 static int is_zero(pyobj val) {
@@ -168,17 +177,9 @@ static void print_pyobj(pyobj x) {
   }
 }
 
-void print_nl() {
-  printf("\n");
-}
-
 int input() {
   int i;
-//  printf("EOF: %d\n",EOF);
-  int count = scanf("%d", &i);
-//  printf("count: %d\n",count);
-  if (count != 1)
-    exit(1);
+  scanf("%d", &i);
   return i;
 }
 
@@ -206,7 +207,7 @@ big_pyobj* create_list(pyobj length) {
   return list_to_big(l);
 }
 
-pyobj make_list(pyobj length) {
+static pyobj make_list(pyobj length) {
   return inject_big(create_list(length));
 }
 
@@ -422,7 +423,7 @@ static char dict_equal(struct hashtable* x, struct hashtable* y)
     return same;
 }
 
-int equal_pyobj(pyobj a, pyobj b)
+static int equal_pyobj(pyobj a, pyobj b)
 {
   switch (tag(a)) {
   case INT_TAG: {
@@ -501,7 +502,7 @@ big_pyobj* create_dict()
   return v;
 }
 
-pyobj make_dict() { return inject_big(create_dict()); }
+static pyobj make_dict() { return inject_big(create_dict()); }
 
 static pyobj* dict_subscript(dict d, pyobj key)
 {
@@ -512,7 +513,7 @@ static pyobj* dict_subscript(dict d, pyobj key)
     pyobj* k = (pyobj*) malloc(sizeof(pyobj));
     *k = key;
     pyobj* v = (pyobj*) malloc(sizeof(pyobj));
-    *v = inject_big(NULL);
+    *v = inject_int(444);
     hashtable_insert(d, k, v);
     return v;
   }
@@ -707,17 +708,9 @@ static pyobj subscript(big_pyobj* c, pyobj key)
   case LIST:
     return *list_subscript(c->u.l, key);
   case DICT:
-  {
-    pyobj val = *dict_subscript(c->u.d, key);
-    if (is_big(val) && project_big(val)==NULL)
-    {
-        printf("dict KeyError\n");
-        exit(-1);
-    }
-    return val;
-  }
+    return *dict_subscript(c->u.d, key);
   default:
-    printf("error in subscript, not a list or dictionary\n");
+    printf("error in set subscript, not a list or dictionary\n");
     assert(0);
   }
 }
@@ -1030,7 +1023,10 @@ pyobj get_attr(pyobj c, char* attr)
     } else {
       return *attribute;
     }
-  }  
+  }
+  case GENOBJ: {
+		return hashtable_search(b->u.go.expression_list, attr);
+	}
   default:
     printf("error in get attribute, not a class or object\n");
     exit(-1);
@@ -1056,6 +1052,8 @@ pyobj set_attr(pyobj obj, char* attr, pyobj val)
     case OBJECT:
       attrs = b->u.obj.attrs;
       break;
+    case GENOBJ:
+			attrs = b->u.go.expression_list;
     default:
       printf("error, expected object or class in set attribute\n");
       exit(-1);
@@ -1067,6 +1065,25 @@ pyobj set_attr(pyobj obj, char* attr, pyobj val)
            exit(-1);
         }
     return val;
+}
+
+static big_pyobj* genobj_to_big(genobj go) {
+  big_pyobj* v = (big_pyobj*)malloc(sizeof(big_pyobj));
+  v->tag = GENOBJ;
+  v->u.go = go;
+  return v;
+}
+
+big_pyobj* create_genobj(void* instr_ptr, pyobj expression_list) {
+  genobj go;
+  go.instruct_ptr = instr_ptr;
+  go.expression_list = expression_list;
+  return genobj_to_big(go);
+}
+
+void* get_instrptr(pyobj obj) {
+	big_pyobj* b = project_genobj(obj);
+	return b->u.go->instruct_ptr;
 }
 
 pyobj error_pyobj(char* string) {
